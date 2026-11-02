@@ -10,15 +10,12 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-# 1. Page Configuration (Wide Layout & Custom Title)
+# 1. Page Configuration (Wide Layout & Custom CSS)
 st.set_page_config(page_title="Pro AI Stock Analyst", layout="wide", page_icon="🏦")
 
-# Custom CSS for slight UI tweaks
 st.markdown("""
     <style>
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-    }
+    .stTabs [data-baseweb="tab-list"] { gap: 24px; }
     .stTabs [data-baseweb="tab"] {
         height: 50px;
         white-space: pre-wrap;
@@ -29,6 +26,7 @@ st.markdown("""
         font-size: 16px;
         font-weight: 600;
     }
+    [data-testid="stMetricValue"] { font-size: 28px; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -48,9 +46,6 @@ with st.sidebar:
     period_options = {"1 Year": "1y", "2 Years": "2y", "5 Years": "5y"}
     selected_period = st.selectbox("Historical Data Range:", list(period_options.keys()), index=2)
     analyze_button = st.button("Execute AI Analysis", use_container_width=True, type="primary")
-    
-    st.markdown("---")
-    st.info("💡 **Tip:** Use the Tabs in the main view to switch between the visual chart and the detailed text report.")
 
 if analyze_button or ticker:
     with st.spinner(f"Aggregating market data and training AI for {ticker}..."):
@@ -93,36 +88,34 @@ if analyze_button or ticker:
             ai_change = ((pred_price - curr_price) / curr_price) * 100
             cross_status = "GOLDEN CROSS 🟢" if sma_50 > sma_200 else "DEATH CROSS 🔴"
 
-            # 5. Top Level Metric Dashboard
+            # 5. UI Cards for Metrics (React-style)
             m1, m2, m3, m4 = st.columns(4)
             with m1.container(border=True):
                 st.metric("Current Asset Price", f"${curr_price:.2f}")
             with m2.container(border=True):
                 st.metric("AI 30-Day Target", f"${pred_price:.2f}", f"{ai_change:.2f}% Projected")
             with m3.container(border=True):
-                st.metric("Macro Structure (50/200)", cross_status)
+                st.metric("Macro Structure", cross_status)
             with m4.container(border=True):
                 st.metric("50-Day RSI Momentum", f"{df['RSI_50'].iloc[-1]:.2f}")
 
-            # 6. Tabbed Interface for clean UX
+            # 6. Tabbed Workspace
             tab1, tab2, tab3 = st.tabs(["📈 Interactive Chart", "🤖 Detailed AI Report", "📁 Raw Dataset"])
             
             with tab1:
-                # Upgraded Candlestick Chart
+                # Fixed Plotly Chart
                 fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                                     vertical_spacing=0.05, row_heights=[0.75, 0.25])
                 
-                # Candlestick (Professional standard)
                 fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], 
                                              low=df['Low'], close=df['Close'], name='Market Price'), row=1, col=1)
                 
-                # Moving Averages & AI Forecast
                 fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], name='50-Day SMA', line=dict(color='blue', width=1)), row=1, col=1)
                 fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], name='200-Day SMA', line=dict(color='red', width=1)), row=1, col=1)
                 fig.add_trace(go.Scatter(x=future_dates, y=predictions, name='AI Forecast', line=dict(color='yellow', dash='dash', width=2)), row=1, col=1)
                 
-                # Bottom Chart: RSI
-                fig.add_trace(go.Scatter(x=df.index, y=df['RSI_50'], name='50-Day RSI', line=dict(color='#B794F4', fill='tozeroy')), row=2, col=1)
+                # BUG FIX: fill='tozeroy' moved outside the line dictionary
+                fig.add_trace(go.Scatter(x=df.index, y=df['RSI_50'], name='50-Day RSI', line=dict(color='#B794F4'), fill='tozeroy'), row=2, col=1)
                 fig.add_hline(y=60, line_dash="dot", line_color="red", row=2, col=1)
                 fig.add_hline(y=40, line_dash="dot", line_color="green", row=2, col=1)
                 
