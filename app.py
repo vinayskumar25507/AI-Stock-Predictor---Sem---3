@@ -10,25 +10,57 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-# 1. Page Configuration
-st.set_page_config(page_title="AI Stock Predictor", layout="wide", page_icon="📈")
-st.title("📈 AI-Based Stock Market Analysis & Prediction System")
-st.markdown("Analyze historical data, institutional moving averages, volatility, and AI-driven price projections.")
+# 1. Page Configuration (Wide Layout & Custom Title)
+st.set_page_config(page_title="Pro AI Stock Analyst", layout="wide", page_icon="🏦")
 
-# 2. Sidebar Input
-st.sidebar.header("System Parameters")
-ticker = st.sidebar.text_input("Enter Stock Ticker:", value="NVDA").upper()
-analyze_button = st.sidebar.button("Run AI Analysis")
+# Custom CSS for slight UI tweaks
+st.markdown("""
+    <style>
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 4px 4px 0px 0px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Main Header
+col_header1, col_header2 = st.columns([3, 1])
+with col_header1:
+    st.title("🏦 AI-Powered Financial Terminal")
+    st.markdown("Advanced quantitative analysis, institutional moving averages, and Machine Learning projections.")
+with col_header2:
+    st.caption(f"Live Session: {datetime.datetime.now().strftime('%Y-%m-%d')}")
+st.divider()
+
+# 2. Sidebar Configuration
+with st.sidebar:
+    st.header("⚙️ Terminal Controls")
+    ticker = st.text_input("Asset Ticker (e.g., AAPL, NVDA):", value="AAPL").upper()
+    period_options = {"1 Year": "1y", "2 Years": "2y", "5 Years": "5y"}
+    selected_period = st.selectbox("Historical Data Range:", list(period_options.keys()), index=2)
+    analyze_button = st.button("Execute AI Analysis", use_container_width=True, type="primary")
+    
+    st.markdown("---")
+    st.info("💡 **Tip:** Use the Tabs in the main view to switch between the visual chart and the detailed text report.")
 
 if analyze_button or ticker:
-    with st.spinner(f"Fetching data and training AI for {ticker}..."):
+    with st.spinner(f"Aggregating market data and training AI for {ticker}..."):
         stock = yf.Ticker(ticker)
-        df = stock.history(period="5y")
+        df = stock.history(period=period_options[selected_period])
         
         if df.empty:
-            st.error("Invalid ticker symbol. Please try again.")
+            st.error(f"Error: Unable to fetch data for '{ticker}'. Please verify the ticker symbol.")
         else:
-            # 3. Technical Indicators
+            # 3. Calculate Indicators
             df['SMA_50'] = df['Close'].rolling(window=50).mean()
             df['SMA_200'] = df['Close'].rolling(window=200).mean()
             
@@ -40,14 +72,9 @@ if analyze_button or ticker:
             rs = avg_gain / avg_loss
             df['RSI_50'] = 100 - (100 / (1 + rs))
             
-            df['BB_Mid'] = df['Close'].rolling(window=20).mean()
-            df['BB_Std'] = df['Close'].rolling(window=20).std()
-            df['BB_Upper'] = df['BB_Mid'] + (2 * df['BB_Std'])
-            df['BB_Lower'] = df['BB_Mid'] - (2 * df['BB_Std'])
-            
             df = df.dropna()
             
-            # 4. AI ML Model
+            # 4. AI Machine Learning Engine
             df['Days'] = np.arange(len(df))
             X = df[['Days']]
             y = df['Close']
@@ -58,42 +85,74 @@ if analyze_button or ticker:
             predictions = model.predict(future_days)
             future_dates = [df.index[-1] + datetime.timedelta(days=i) for i in range(1, 31)]
             
-            # 5. Interactive Plotly Visualization
-            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                                vertical_spacing=0.03, row_heights=[0.7, 0.3])
-            
-            # Top Chart: Price & MAs
-            fig.add_trace(go.Scatter(x=df.index, y=df['Close'], name='Close Price', line=dict(color='white', width=1)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], name='50-Day SMA', line=dict(color='blue', width=1.5)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], name='200-Day SMA', line=dict(color='red', width=1.5)), row=1, col=1)
-            fig.add_trace(go.Scatter(x=future_dates, y=predictions, name='AI Forecast', line=dict(color='green', dash='dash', width=2)), row=1, col=1)
-            
-            # Bottom Chart: RSI
-            fig.add_trace(go.Scatter(x=df.index, y=df['RSI_50'], name='50-Day RSI', line=dict(color='purple')), row=2, col=1)
-            fig.add_hline(y=60, line_dash="dash", line_color="red", row=2, col=1)
-            fig.add_hline(y=40, line_dash="dash", line_color="green", row=2, col=1)
-            
-            fig.update_layout(height=700, title_text=f"Interactive Technical & AI Analysis for {ticker}", template="plotly_dark")
-            fig.update_yaxes(title_text="Price (USD)", row=1, col=1)
-            fig.update_yaxes(title_text="RSI", row=2, col=1)
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # 6. Metrics Dashboard
-            st.subheader("📊 Institutional-Grade AI Report")
-            col1, col2, col3, col4 = st.columns(4)
-            
+            # Extract current metrics
             curr_price = df['Close'].iloc[-1]
             pred_price = predictions[-1]
             sma_50 = df['SMA_50'].iloc[-1]
             sma_200 = df['SMA_200'].iloc[-1]
-            
             ai_change = ((pred_price - curr_price) / curr_price) * 100
-            cross = "GOLDEN CROSS 🟢" if sma_50 > sma_200 else "DEATH CROSS 🔴"
+            cross_status = "GOLDEN CROSS 🟢" if sma_50 > sma_200 else "DEATH CROSS 🔴"
+
+            # 5. Top Level Metric Dashboard
+            m1, m2, m3, m4 = st.columns(4)
+            with m1.container(border=True):
+                st.metric("Current Asset Price", f"${curr_price:.2f}")
+            with m2.container(border=True):
+                st.metric("AI 30-Day Target", f"${pred_price:.2f}", f"{ai_change:.2f}% Projected")
+            with m3.container(border=True):
+                st.metric("Macro Structure (50/200)", cross_status)
+            with m4.container(border=True):
+                st.metric("50-Day RSI Momentum", f"{df['RSI_50'].iloc[-1]:.2f}")
+
+            # 6. Tabbed Interface for clean UX
+            tab1, tab2, tab3 = st.tabs(["📈 Interactive Chart", "🤖 Detailed AI Report", "📁 Raw Dataset"])
             
-            col1.metric("Current Price", f"${curr_price:.2f}")
-            col2.metric("AI 30-Day Target", f"${pred_price:.2f}", f"{ai_change:.2f}%")
-            col3.metric("Macro Trend", cross)
-            col4.metric("50-Day RSI", f"{df['RSI_50'].iloc[-1]:.2f}")
-            
-            st.info("The interactive chart above allows zooming, panning, and hovering for exact daily values. The AI model projects linear momentum based on historical structures.")
+            with tab1:
+                # Upgraded Candlestick Chart
+                fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
+                                    vertical_spacing=0.05, row_heights=[0.75, 0.25])
+                
+                # Candlestick (Professional standard)
+                fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], 
+                                             low=df['Low'], close=df['Close'], name='Market Price'), row=1, col=1)
+                
+                # Moving Averages & AI Forecast
+                fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], name='50-Day SMA', line=dict(color='blue', width=1)), row=1, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], name='200-Day SMA', line=dict(color='red', width=1)), row=1, col=1)
+                fig.add_trace(go.Scatter(x=future_dates, y=predictions, name='AI Forecast', line=dict(color='yellow', dash='dash', width=2)), row=1, col=1)
+                
+                # Bottom Chart: RSI
+                fig.add_trace(go.Scatter(x=df.index, y=df['RSI_50'], name='50-Day RSI', line=dict(color='#B794F4', fill='tozeroy')), row=2, col=1)
+                fig.add_hline(y=60, line_dash="dot", line_color="red", row=2, col=1)
+                fig.add_hline(y=40, line_dash="dot", line_color="green", row=2, col=1)
+                
+                fig.update_layout(height=650, margin=dict(l=0, r=0, t=10, b=0), template="plotly_dark", xaxis_rangeslider_visible=False)
+                st.plotly_chart(fig, use_container_width=True)
+
+            with tab2:
+                st.subheader(f"Institutional Synthesis: {ticker}")
+                st.write(f"**Asset Profile:** Currently trading at **${curr_price:.2f}**.")
+                
+                st.markdown("### 1. Technical Framework")
+                if sma_50 > sma_200:
+                    st.success(f"**Bullish Macro Trend:** The asset is currently in a {cross_status}. The short-term 50-day average (${sma_50:.2f}) has crossed above the long-term 200-day average (${sma_200:.2f}), indicating sustained upward momentum.")
+                else:
+                    st.error(f"**Bearish Macro Trend:** The asset is currently in a {cross_status}. The short-term 50-day average (${sma_50:.2f}) has crossed below the long-term 200-day average (${sma_200:.2f}), indicating sustained downward pressure.")
+                
+                st.markdown("### 2. Machine Learning Outlook")
+                trend_direction = "appreciate" if pred_price > curr_price else "depreciate"
+                st.info(f"**30-Day Forecast:** The linear regression AI model anticipates the asset will **{trend_direction}** over the next 30 trading days, reaching a target price of **${pred_price:.2f}** (a change of {ai_change:+.2f}%).")
+                
+                st.markdown("### 3. Momentum (RSI)")
+                rsi_val = df['RSI_50'].iloc[-1]
+                if rsi_val > 60:
+                    st.warning(f"**Overbought:** The 50-day RSI is currently elevated at {rsi_val:.2f}. The asset may be slightly overvalued in the short term.")
+                elif rsi_val < 40:
+                    st.success(f"**Oversold:** The 50-day RSI is depressed at {rsi_val:.2f}. The asset may be undervalued, presenting a potential buying opportunity.")
+                else:
+                    st.write(f"**Neutral:** The 50-day RSI is balanced at {rsi_val:.2f}, indicating stable momentum without extreme volatility.")
+
+            with tab3:
+                st.subheader("Historical & Processed Dataset")
+                st.dataframe(df.tail(100), use_container_width=True)
+                st.download_button(label="Download CSV", data=df.to_csv().encode('utf-8'), file_name=f"{ticker}_data.csv", mime='text/csv')
