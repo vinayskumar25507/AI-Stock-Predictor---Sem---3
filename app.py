@@ -121,38 +121,30 @@ if analyze_button or ticker:
             tab1, tab2, tab3 = st.tabs(["📈 Interactive Chart", "🤖 Detailed AI Report", "📁 Raw Dataset"])
             
             with tab1:
+                # Chart separation increased to clearly distinguish the two graphs
                 fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                                     vertical_spacing=0.15, row_heights=[0.75, 0.25])
                 
-                # Top Chart Traces (Assigned to default "legend")
                 fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], 
-                                             low=df['Low'], close=df['Close'], name='Market Price', legend="legend"), row=1, col=1)
+                                             low=df['Low'], close=df['Close'], name='Market Price'), row=1, col=1)
                 
-                fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], name='50-Day SMA', line=dict(color='blue', width=1), legend="legend"), row=1, col=1)
-                fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], name='200-Day SMA', line=dict(color='red', width=1), legend="legend"), row=1, col=1)
-                fig.add_trace(go.Scatter(x=future_dates, y=predictions, name='AI Forecast', line=dict(color='yellow', dash='dash', width=2), legend="legend"), row=1, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=df['SMA_50'], name='50-Day SMA', line=dict(color='blue', width=1)), row=1, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], name='200-Day SMA', line=dict(color='red', width=1)), row=1, col=1)
+                fig.add_trace(go.Scatter(x=future_dates, y=predictions, name='AI Forecast', line=dict(color='yellow', dash='dash', width=2)), row=1, col=1)
                 
-                # Bottom Chart Traces (Assigned to distinct "legend2")
-                fig.add_trace(go.Scatter(x=df.index, y=df['RSI_50'], name='50-Day RSI', line=dict(color='#B794F4'), fill='tozeroy', legend="legend2"), row=2, col=1)
+                fig.add_trace(go.Scatter(x=df.index, y=df['RSI_50'], name='50-Day RSI', line=dict(color='#B794F4'), fill='tozeroy'), row=2, col=1)
                 fig.add_hline(y=60, line_dash="dot", line_color="red", row=2, col=1)
                 fig.add_hline(y=40, line_dash="dot", line_color="green", row=2, col=1)
                 
+                # Explicitly setting Y-axis titles
                 fig.update_yaxes(title_text="Price (USD)", row=1, col=1)
                 fig.update_yaxes(title_text="RSI Value", row=2, col=1)
                 
+                # Explicitly setting X-axis titles and forcing tick labels to show on BOTH charts
                 fig.update_xaxes(title_text="Date", showticklabels=True, row=1, col=1) 
                 fig.update_xaxes(title_text="Date", showticklabels=True, row=2, col=1)
                 
-                # Layout updated with dual legend positioning
-                fig.update_layout(
-                    height=750, 
-                    margin=dict(l=40, r=40, t=60, b=40), 
-                    template="plotly_dark", 
-                    xaxis_rangeslider_visible=False,
-                    legend=dict(y=1.0, yanchor="top", x=1.02, xanchor="left", title="Price Data"),
-                    legend2=dict(y=0.23, yanchor="top", x=1.02, xanchor="left", title="Momentum")
-                )
-                
+                fig.update_layout(height=750, margin=dict(l=40, r=40, t=60, b=40), template="plotly_dark", xaxis_rangeslider_visible=False)
                 st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'modeBarButtonsToRemove': ['lasso2d', 'select2d']})
 
             with tab2:
