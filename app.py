@@ -42,13 +42,21 @@ with col_header2:
     st.caption(f"Live Session: {datetime.datetime.now().strftime('%Y-%m-%d')}")
 st.divider()
 
-# 2. Sidebar Configuration
+# 2. Sidebar Configuration & Infrastructure Trust Badges
 with st.sidebar:
     st.header("⚙️ Terminal Controls")
     ticker = st.text_input("Asset Ticker (e.g., AAPL, NVDA):", value="AAPL").upper()
     period_options = {"1 Year": "1y", "2 Years": "2y", "5 Years": "5y"}
     selected_period = st.selectbox("Historical Data Range:", list(period_options.keys()), index=2)
     analyze_button = st.button("Execute AI Analysis", use_container_width=True, type="primary")
+    
+    st.markdown("---")
+    st.header("🏗️ System Infrastructure")
+    st.info(
+        "**Data Provenance:** Live market data is dynamically fetched directly from the **Yahoo Finance API** (`yfinance`), ensuring institutional-grade accuracy.\n\n"
+        "**AI Engine:** Predictions are powered by a **Scikit-Learn** Machine Learning model (Linear Regression) trained in real-time on the asset's historical momentum.\n\n"
+        "**Architecture:** Built using **Python, Streamlit, and Plotly** for secure, server-side data processing and interactive front-end rendering."
+    )
 
 if analyze_button or ticker:
     with st.spinner(f"Aggregating market data and training AI for {ticker}..."):
@@ -113,7 +121,7 @@ if analyze_button or ticker:
             tab1, tab2, tab3 = st.tabs(["📈 Interactive Chart", "🤖 Detailed AI Report", "📁 Raw Dataset"])
             
             with tab1:
-                # Chart separation increased to 0.15
+                # Chart separation increased to clearly distinguish the two graphs
                 fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
                                     vertical_spacing=0.15, row_heights=[0.75, 0.25])
                 
@@ -128,15 +136,15 @@ if analyze_button or ticker:
                 fig.add_hline(y=60, line_dash="dot", line_color="red", row=2, col=1)
                 fig.add_hline(y=40, line_dash="dot", line_color="green", row=2, col=1)
                 
-                # Explicit axis titles added
+                # Explicitly setting Y-axis titles
                 fig.update_yaxes(title_text="Price (USD)", row=1, col=1)
                 fig.update_yaxes(title_text="RSI Value", row=2, col=1)
-                fig.update_xaxes(title_text="Date", row=2, col=1)
                 
-                # Top margin increased (t=60) to prevent modebar overlap
+                # Explicitly setting X-axis titles and forcing tick labels to show on BOTH charts
+                fig.update_xaxes(title_text="Date", showticklabels=True, row=1, col=1) 
+                fig.update_xaxes(title_text="Date", showticklabels=True, row=2, col=1)
+                
                 fig.update_layout(height=750, margin=dict(l=40, r=40, t=60, b=40), template="plotly_dark", xaxis_rangeslider_visible=False)
-                
-                # Streamlit chart render config updated to manage the modebar
                 st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'modeBarButtonsToRemove': ['lasso2d', 'select2d']})
 
             with tab2:
