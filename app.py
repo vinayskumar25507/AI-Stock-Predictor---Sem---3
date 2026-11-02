@@ -10,7 +10,7 @@ import warnings
 
 warnings.filterwarnings('ignore')
 
-# 1. Page Configuration (Wide Layout & Custom CSS)
+# 1. Page Configuration
 st.set_page_config(page_title="Pro AI Stock Analyst", layout="wide", page_icon="🏦")
 
 st.markdown("""
@@ -26,7 +26,10 @@ st.markdown("""
         font-size: 16px;
         font-weight: 600;
     }
-    [data-testid="stMetricValue"] { font-size: 28px; }
+    [data-testid="stMetricValue"] { 
+        font-size: 22px !important; 
+        white-space: normal !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -51,6 +54,11 @@ if analyze_button or ticker:
     with st.spinner(f"Aggregating market data and training AI for {ticker}..."):
         stock = yf.Ticker(ticker)
         df = stock.history(period=period_options[selected_period])
+        
+        try:
+            company_name = stock.info.get('shortName', ticker)
+        except:
+            company_name = ticker
         
         if df.empty:
             st.error(f"Error: Unable to fetch data for '{ticker}'. Please verify the ticker symbol.")
@@ -88,8 +96,10 @@ if analyze_button or ticker:
             ai_change = ((pred_price - curr_price) / curr_price) * 100
             cross_status = "GOLDEN CROSS 🟢" if sma_50 > sma_200 else "DEATH CROSS 🔴"
 
-            # 5. UI Cards for Metrics (React-style)
-            m1, m2, m3, m4 = st.columns(4)
+            st.subheader(f"Asset Overview: {company_name} ({ticker})")
+
+            # 5. UI Cards for Metrics
+            m1, m2, m3, m4 = st.columns([1, 1, 1.2, 1])
             with m1.container(border=True):
                 st.metric("Current Asset Price", f"${curr_price:.2f}")
             with m2.container(border=True):
@@ -103,9 +113,9 @@ if analyze_button or ticker:
             tab1, tab2, tab3 = st.tabs(["📈 Interactive Chart", "🤖 Detailed AI Report", "📁 Raw Dataset"])
             
             with tab1:
-                # Fixed Plotly Chart
+                # Chart separation increased to 0.15
                 fig = make_subplots(rows=2, cols=1, shared_xaxes=True, 
-                                    vertical_spacing=0.05, row_heights=[0.75, 0.25])
+                                    vertical_spacing=0.15, row_heights=[0.75, 0.25])
                 
                 fig.add_trace(go.Candlestick(x=df.index, open=df['Open'], high=df['High'], 
                                              low=df['Low'], close=df['Close'], name='Market Price'), row=1, col=1)
@@ -114,18 +124,22 @@ if analyze_button or ticker:
                 fig.add_trace(go.Scatter(x=df.index, y=df['SMA_200'], name='200-Day SMA', line=dict(color='red', width=1)), row=1, col=1)
                 fig.add_trace(go.Scatter(x=future_dates, y=predictions, name='AI Forecast', line=dict(color='yellow', dash='dash', width=2)), row=1, col=1)
                 
-                # BUG FIX: fill='tozeroy' moved outside the line dictionary
                 fig.add_trace(go.Scatter(x=df.index, y=df['RSI_50'], name='50-Day RSI', line=dict(color='#B794F4'), fill='tozeroy'), row=2, col=1)
                 fig.add_hline(y=60, line_dash="dot", line_color="red", row=2, col=1)
                 fig.add_hline(y=40, line_dash="dot", line_color="green", row=2, col=1)
                 
-                fig.update_layout(height=650, margin=dict(l=0, r=0, t=10, b=0), template="plotly_dark", xaxis_rangeslider_visible=False)
-                st.plotly_chart(fig, use_container_width=True)
+                # Explicit axis titles added
+                fig.update_yaxes(title_text="Price (USD)", row=1, col=1)
+                fig.update_yaxes(title_text="RSI Value", row=2, col=1)
+                fig.update_xaxes(title_text="Date", row=2, col=1)
+                
+                # Top margin increased (t=60) to prevent modebar overlap
+                fig.update_layout(height=750, margin=dict(l=40, r=40, t=60, b=40), template="plotly_dark", xaxis_rangeslider_visible=False)
+                
+                # Streamlit chart render config updated to manage the modebar
+                st.plotly_chart(fig, use_container_width=True, config={'displaylogo': False, 'modeBarButtonsToRemove': ['lasso2d', 'select2d']})
 
             with tab2:
-                st.subheader(f"Institutional Synthesis: {ticker}")
-                st.write(f"**Asset Profile:** Currently trading at **${curr_price:.2f}**.")
-                
                 st.markdown("### 1. Technical Framework")
                 if sma_50 > sma_200:
                     st.success(f"**Bullish Macro Trend:** The asset is currently in a {cross_status}. The short-term 50-day average (${sma_50:.2f}) has crossed above the long-term 200-day average (${sma_200:.2f}), indicating sustained upward momentum.")
@@ -146,6 +160,6 @@ if analyze_button or ticker:
                     st.write(f"**Neutral:** The 50-day RSI is balanced at {rsi_val:.2f}, indicating stable momentum without extreme volatility.")
 
             with tab3:
-                st.subheader("Historical & Processed Dataset")
+                st.subheader(f"Historical & Processed Dataset: {ticker}")
                 st.dataframe(df.tail(100), use_container_width=True)
                 st.download_button(label="Download CSV", data=df.to_csv().encode('utf-8'), file_name=f"{ticker}_data.csv", mime='text/csv')
